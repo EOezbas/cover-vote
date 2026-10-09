@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cover Song Vote</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎸</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#dfe3e6; --paper:#ffffff; --ink:#1d2328; --muted:#66707a; --line:#c9cfd4;
+  --hi:#ffe14d; --up:#1f8a4c; --down:#c0392b; --zero:#66707a; --tape:#b9c2c9;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#161b20; --paper:#222a31; --ink:#eef1f3; --muted:#9aa5ae; --line:#34404a;
+    --hi:#e8c93a; --up:#4cc47f; --down:#ef6b5c; --zero:#9aa5ae; --tape:#3d4953;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:28px 16px 48px}
+h1{font:400 clamp(2.2rem,7vw,3.4rem)/1 "Permanent Marker","Comic Sans MS",cursive;margin:0 0 4px;transform:rotate(-1.5deg)}
+.sub{color:var(--muted);margin:0 0 24px}
+.who{font-size:.9rem;color:var(--muted)}
+.who button{background:none;border:0;color:inherit;text-decoration:underline;padding:0;font-size:inherit}
+.sheet{background:var(--paper);border-radius:4px;padding:20px;position:relative;box-shadow:0 1px 0 var(--line)}
+.sheet::before{content:"";position:absolute;top:-10px;left:50%;width:90px;height:22px;margin-left:-45px;background:var(--tape);opacity:.8;transform:rotate(2deg)}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+form .full{grid-column:1/-1}
+input{width:100%;font:inherit;color:var(--ink);background:transparent;border:0;border-bottom:2px solid var(--line);padding:8px 2px}
+input:focus{outline:none;border-bottom-color:var(--ink)}
+button{font:inherit;cursor:pointer;border-radius:6px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--hi);outline-offset:2px}
+.add{grid-column:1/-1;justify-self:start;background:var(--ink);color:var(--paper);border:0;padding:10px 18px;font-weight:700}
+.add:disabled{opacity:.5;cursor:default}
+.msg{min-height:1.4em;color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.bar{display:flex;justify-content:space-between;align-items:baseline;margin:28px 0 4px;gap:8px;flex-wrap:wrap}
+.bar h2{font:400 1.6rem "Permanent Marker",cursive;margin:0}
+.hint{color:var(--muted);font-size:.9rem;margin:0 0 8px}
+ol{list-style:none;margin:0;padding:0}
+li{display:grid;grid-template-columns:2.2rem 1fr auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
+ol.todo li{grid-template-columns:1fr auto}
+li:last-child{border-bottom:0}
+.rank{font:400 1.5rem "Permanent Marker",cursive;text-align:center;color:var(--muted)}
+li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
+.title{font-weight:700;font-size:1.1rem;overflow-wrap:anywhere}
+.artist{color:var(--muted)}
+.meta{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.meta a{color:inherit}
+.del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
+.chip{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#fff;font-size:.65rem;font-weight:700;margin-left:-4px;border:2px solid var(--paper)}
+.chips{display:flex;padding-left:4px}
+.vote{display:flex;flex-direction:column;align-items:center;gap:4px}
+.btns{display:flex;gap:4px}
+.btns button{width:40px;height:40px;border:2px solid var(--line);background:transparent;color:var(--muted);font-size:1rem;line-height:1;font-weight:700}
+.btns button.on.u{border-color:var(--up);background:var(--up);color:#fff}
+.btns button.on.z{border-color:var(--zero);background:var(--zero);color:var(--paper)}
+.btns button.on.d{border-color:var(--down);background:var(--down);color:#fff}
+.score{font-weight:700;font-size:1.1rem}
+.counts{font-size:.75rem;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:24px 0;display:block}
+dialog{border:0;border-radius:8px;padding:24px;background:var(--paper);color:var(--ink);max-width:340px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{font:400 1.5rem "Permanent Marker",cursive;margin:0 0 12px}
+dialog form{grid-template-columns:1fr}
+@media (max-width:520px){form{grid-template-columns:1fr} .btns button{width:36px;height:36px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>What do we cover?</h1>
+  <p class="sub">Add songs and vote on every one of them. Highest score goes on the setlist.<br>
+    <span class="who" id="who"></span></p>
+
+  <div class="sheet">
+    <form id="f" autocomplete="off">
+      <input id="l" class="full" placeholder="Paste Spotify / YouTube link" maxlength="300" type="url">
+      <input id="t" placeholder="Song title" maxlength="120" required>
+      <input id="a" placeholder="Artist" maxlength="120">
+      <button class="add" id="addBtn">Add song</button>
+    </form>
+    <p class="msg" id="msg"></p>
+
+    <div class="bar"><h2 id="listTitle">The list</h2></div>
+    <p class="hint" id="hint"></p>
+    <ol id="list"><li class="empty">Loading…</li></ol>
+  </div>
+</main>
+
+<dialog id="hello">
+  <h3>Who's voting?</h3>
+  <form id="helloForm" method="dialog">
+    <input id="nameIn" placeholder="Your name" maxlength="40" required>
+    <input id="codeIn" placeholder="Band code (if you got one)" maxlength="60">
+    <button class="add">Let's go</button>
+  </form>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let voter = store.get("cv_voter");
+if (!voter) { voter = crypto.randomUUID(); store.set("cv_voter", voter); }
+let name = store.get("cv_name");
+let code = store.get("cv_code");
+
+let songs = [], votes = {}, voters = {};
+const msg = t => { $("msg").textContent = t; };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: { "content-type": "application/json", "x-room-code": code, ...(opts.headers || {}) },
+  });
+  if (r.status === 401) { askName(true); throw new Error("wrong_code"); }
+  if (!r.ok) throw new Error("http_" + r.status);
+  return r.status === 204 ? null : r.json();
+}
+
+function askName(wrongCode) {
+  $("nameIn").value = name;
+  $("codeIn").value = wrongCode ? "" : code;
+  if (wrongCode) $("codeIn").placeholder = "Band code — wrong or missing";
+  if (!$("hello").open) $("hello").showModal();
+}
+$("helloForm").addEventListener("submit", () => {
+  name = $("nameIn").value.trim(); code = $("codeIn").value.trim();
+  store.set("cv_name", name); store.set("cv_code", code);
+  renderWho(); load();
+});
+function renderWho() {
+  const w = $("who"); w.textContent = name ? "Voting as " + name + " · " : "";
+  const b = document.createElement("button"); b.textContent = name ? "change" : "set your name";
+  b.onclick = () => askName(false); w.appendChild(b);
+}
+
+async function load() {
+  try {
+    const d = await api("/api/songs");
+    songs = d.songs; votes = d.votes; voters = d.voters;
+    render();
+  } catch (e) { if (e.message !== "wrong_code") msg("Couldn't load the list."); }
+}
+
+// Link lookup
+let lookupTimer, auto = { t: "", a: "" };
+$("l").addEventListener("input", () => {
+  clearTimeout(lookupTimer);
+  lookupTimer = setTimeout(lookup, 400);
+});
+async function lookup() {
+  const url = $("l").value.trim();
+  if (!/^https?:\/\//i.test(url)) return;
+  msg("Looking up the song…");
+  try {
+    const m = await api("/api/meta?url=" + encodeURIComponent(url));
+    // only overwrite fields the user hasn't typed into
+    if (m.title && (!$("t").value || $("t").value === auto.t)) $("t").value = auto.t = m.title;
+    if (m.artist && (!$("a").value || $("a").value === auto.a)) $("a").value = auto.a = m.artist;
+    msg(m.title ? "" : "Couldn't read that link — type the name in.");
+  } catch { msg("Couldn't read that link — type the name in."); }
+}
+
+const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+$("f").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  if (!name) return askName(false);
+  const title = $("t").value.trim(), artist = $("a").value.trim(), link = $("l").value.trim();
+  if (!title) return;
+  if (songs.some(s => norm(s.title) === norm(title) && norm(s.artist) === norm(artist))) {
+    msg("That one's already on the list."); return;
+  }
+  $("addBtn").disabled = true;
+  try {
+    await api("/api/songs", { method: "POST", body: JSON.stringify({ title, artist, link, voter, name }) });
+    $("f").reset(); auto = { t: "", a: "" }; msg("Added. Don't forget to vote on it too.");
+    await load();
+  } catch { msg("Couldn't add the song."); }
+  $("addBtn").disabled = false;
+});
+
+const myVote = id => {
+  const v = votes[id + "|" + voter];
+  return v === undefined || v === null ? null : Number(v);
+};
+
+async function vote(songId, v) {
+  if (!name) return askName(false);
+  if (myVote(songId) === v) return;
+  votes[songId + "|" + voter] = v;
+  render();
+  try { await api("/api/vote", { method: "POST", body: JSON.stringify({ songId, voter, name, value: v }) }); }
+  catch { msg("Vote not saved."); load(); }
+}
+
+async function removeSong(s) {
+  if (!confirm('Remove "' + s.title + '"?')) return;
+  try {
+    await api("/api/songs?id=" + encodeURIComponent(s.id) + "&voter=" + encodeURIComponent(voter), { method: "DELETE" });
+    load();
+  } catch (e) { msg(e.message === "http_403" ? "Only the person who added a song can remove it." : "Couldn't remove."); }
+}
+
+function colorFor(id) {
+  let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${h} 55% 45%)`;
+}
+function chip(id) {
+  const n = voters[id] || "?";
+  const c = document.createElement("span");
+  c.className = "chip"; c.style.background = colorFor(id);
+  c.textContent = n.slice(0, 1).toUpperCase(); c.title = n;
+  return c;
+}
+
+function songInfo(s, showVoters, t) {
+  const info = document.createElement("div");
+  const title = document.createElement("span"); title.className = "title"; title.textContent = s.title;
+  const artist = document.createElement("div"); artist.className = "artist"; artist.textContent = s.artist;
+  const meta = document.createElement("div"); meta.className = "meta";
+  const by = document.createElement("span");
+  by.textContent = "added by " + (s.addedBy === voter ? "you" : voters[s.addedBy] || "someone");
+  meta.appendChild(by);
+  if (/^https?:\/\//i.test(s.link || "")) {
+    const a = document.createElement("a"); a.href = s.link; a.target = "_blank"; a.rel = "noopener"; a.textContent = "listen";
+    meta.appendChild(a);
+  }
+  if (showVoters && t.up.length) {
+    const cs = document.createElement("span"); cs.className = "chips"; cs.title = "Voted up";
+    t.up.slice(0, 8).forEach(u => cs.appendChild(chip(u))); meta.appendChild(cs);
+  }
+  if (s.addedBy === voter) {
+    const d = document.createElement("button"); d.className = "del"; d.textContent = "remove";
+    d.onclick = () => removeSong(s); meta.appendChild(d);
+  }
+  info.append(title, artist, meta);
+  return info;
+}
+
+function voteButtons(s) {
+  const mine = myVote(s.id);
+  const btns = document.createElement("div"); btns.className = "btns";
+  [[1, "u", "▲", "Vote up"], [0, "z", "0", "Neutral"], [-1, "d", "▼", "Vote down"]].forEach(([v, cls, label, aria]) => {
+    const b = document.createElement("button");
+    b.className = cls + (mine === v ? " on" : "");
+    b.textContent = label;
+    b.setAttribute("aria-label", aria + ": " + s.title);
+    b.setAttribute("aria-pressed", mine === v);
+    b.onclick = () => vote(s.id, v);
+    btns.appendChild(b);
+  });
+  return btns;
+}
+
+function render() {
+  const tally = {};
+  songs.forEach(s => tally[s.id] = { score: 0, up: [], down: [], zero: [] });
+  for (const [k, raw] of Object.entries(votes)) {
+    const [sid, uid] = k.split("|");
+    if (!tally[sid]) continue;
+    const v = Number(raw);
+    tally[sid].score += v;
+    (v > 0 ? tally[sid].up : v < 0 ? tally[sid].down : tally[sid].zero).push(uid);
+  }
+
+  const ol = $("list"); ol.textContent = "";
+  const todo = songs.filter(s => myVote(s.id) === null).sort((a, b) => a.createdAt - b.createdAt);
+
+  // Until every song has your vote, only the unvoted ones are shown, without their scores
+  if (todo.length) {
+    ol.className = "todo";
+    $("listTitle").textContent = "Vote on these (" + todo.length + " left)";
+    $("hint").textContent = "▲ want to play it · 0 don't mind · ▼ rather not. The ranking opens once you've voted on every song.";
+    todo.forEach(s => {
+      const li = document.createElement("li");
+      const box = document.createElement("div"); box.className = "vote"; box.appendChild(voteButtons(s));
+      li.append(songInfo(s, false), box);
+      ol.appendChild(li);
+    });
+    return;
+  }
+
+  ol.className = "";
+  $("listTitle").textContent = "The list";
+  $("hint").textContent = songs.length ? "You can still change your votes." : "";
+  if (!songs.length) {
+    const li = document.createElement("li"); li.className = "empty";
+    li.textContent = "No songs yet. Paste the first link above."; ol.appendChild(li); return;
+  }
+  const list = [...songs].sort((a, b) =>
+    (tally[b.id].score - tally[a.id].score) || (tally[b.id].up.length - tally[a.id].up.length) || a.createdAt - b.createdAt);
+  const top = Math.max(...list.map(s => tally[s.id].score));
+  list.forEach((s, i) => {
+    const t = tally[s.id];
+    const li = document.createElement("li");
+    if (t.score > 0 && t.score === top) li.className = "top";
+    const rank = document.createElement("div"); rank.className = "rank"; rank.textContent = i + 1;
+
+    const box = document.createElement("div"); box.className = "vote";
+    const sc = document.createElement("span"); sc.className = "score";
+    sc.textContent = t.score > 0 ? "+" + t.score : t.score;
+    const counts = document.createElement("span"); counts.className = "counts";
+    counts.textContent = "▲" + t.up.length + " · 0:" + t.zero.length + " · ▼" + t.down.length;
+    box.append(sc, voteButtons(s), counts);
+
+    li.append(rank, songInfo(s, true, t), box);
+    ol.appendChild(li);
+  });
+}
+
+renderWho();
+if (!name) askName(false);
+load();
+setInterval(() => { if (!document.hidden) load(); }, 5000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
