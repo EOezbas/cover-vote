@@ -69,6 +69,9 @@ dialog{border:0;border-radius:8px;padding:24px;background:var(--paper);color:var
 dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog h3{font:400 1.5rem "Permanent Marker",cursive;margin:0 0 12px}
 dialog form{grid-template-columns:1fr}
+.known{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.known p{width:100%;margin:0;color:var(--muted);font-size:.9rem}
+.known button{border:1px solid var(--line);background:transparent;color:var(--ink);padding:4px 10px;border-radius:999px}
 @media (max-width:520px){form{grid-template-columns:1fr} .btns button{width:36px;height:36px}}
 </style>
 </head>
@@ -95,6 +98,7 @@ dialog form{grid-template-columns:1fr}
 
 <dialog id="hello">
   <h3>Who's voting?</h3>
+  <div id="known" class="known"></div>
   <form id="helloForm" method="dialog">
     <input id="nameIn" placeholder="Your name" maxlength="40" required>
     <input id="codeIn" placeholder="Band code (if you got one)" maxlength="60">
@@ -127,7 +131,25 @@ async function api(path, opts = {}) {
   return r.status === 204 ? null : r.json();
 }
 
+// On a new device you can pick the name you used before and keep your songs and votes
+function renderKnown() {
+  const box = $("known"); box.textContent = "";
+  const ids = Object.keys(voters).filter(id => id !== voter && voters[id]);
+  if (!ids.length) return;
+  const p = document.createElement("p"); p.textContent = "Voted before? Pick your name:"; box.appendChild(p);
+  ids.sort((a, b) => voters[a].localeCompare(voters[b])).forEach(id => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = voters[id];
+    b.onclick = () => {
+      voter = id; name = voters[id];
+      store.set("cv_voter", voter); store.set("cv_name", name);
+      $("hello").close(); renderWho(); render();
+    };
+    box.appendChild(b);
+  });
+}
+
 function askName(wrongCode) {
+  renderKnown();
   $("nameIn").value = name;
   $("codeIn").value = wrongCode ? "" : code;
   if (wrongCode) $("codeIn").placeholder = "Band code — wrong or missing";
@@ -148,6 +170,7 @@ async function load() {
   try {
     const d = await api("/api/songs");
     songs = d.songs; votes = d.votes; voters = d.voters;
+    if ($("hello").open) renderKnown();
     render();
   } catch (e) { if (e.message !== "wrong_code") msg("Couldn't load the list."); }
 }
