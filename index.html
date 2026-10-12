@@ -206,7 +206,7 @@ $("f").addEventListener("submit", async ev => {
   $("addBtn").disabled = true;
   try {
     await api("/api/songs", { method: "POST", body: JSON.stringify({ title, artist, link, voter, name }) });
-    $("f").reset(); auto = { t: "", a: "" }; msg("Added. Don't forget to vote on it too.");
+    $("f").reset(); auto = { t: "", a: "" }; msg("");
     await load();
   } catch { msg("Couldn't add the song."); }
   $("addBtn").disabled = false;

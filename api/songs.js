@@ -10,10 +10,21 @@ export default async function handler(req, res) {
       redis.hgetall("votes"),
       redis.hgetall("voters"),
     ]);
+    // The person who added a song counts as +1 for it; songs added before this rule get that vote here
+    const all = votes || {};
+    const missing = {};
+    for (const song of Object.values(songs || {})) {
+      const key = `${song.id}|${song.addedBy}`;
+      if (song.addedBy && song.addedBy !== "unknown" && !(key in all)) missing[key] = 1;
+    }
+    if (Object.keys(missing).length) {
+      await redis.hset("votes", missing);
+      Object.assign(all, missing);
+    }
     res.setHeader("Cache-Control", "no-store");
     return res.json({
       songs: Object.values(songs || {}),
-      votes: votes || {},
+      votes: all,
       voters: voters || {},
     });
   }
@@ -30,6 +41,7 @@ export default async function handler(req, res) {
 
     const song = { id: randomUUID(), title, artist, link, addedBy: voter, createdAt: Date.now() };
     await redis.hset("songs", { [song.id]: song });
+    await redis.hset("votes", { [`${song.id}|${voter}`]: 1 });
     if (b.name) await redis.hset("voters", { [voter]: clean(b.name, 40) });
     return res.status(201).json(song);
   }

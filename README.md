@@ -4,6 +4,7 @@ Friends add songs (paste a Spotify/YouTube link, title and artist fill in automa
 
 - Until you have voted on every song, the page shows only the songs you have not voted on, without their scores.
 - Once every song has your vote, the full list opens, ranked by score. You can change your votes there.
+- Adding a song counts as your +1 for it, so you never vote on your own songs.
 - Only the person who added a song can remove it.
 
 ## Deploy to Vercel
