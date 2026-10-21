@@ -46,6 +46,17 @@ export default async function handler(req, res) {
     return res.status(201).json(song);
   }
 
+  if (req.method === "PATCH") {
+    // Anyone can set or clear the key a song is played in
+    const b = req.body || {};
+    const id = clean(b.id, 64);
+    const song = id && (await redis.hget("songs", id));
+    if (!song) return res.status(404).json({ error: "not_found" });
+    song.key = clean(b.key, 12);
+    await redis.hset("songs", { [id]: song });
+    return res.json(song);
+  }
+
   if (req.method === "DELETE") {
     const id = clean(req.query.id, 64);
     const voter = clean(req.query.voter, 64);
@@ -61,6 +72,6 @@ export default async function handler(req, res) {
     return res.status(204).end();
   }
 
-  res.setHeader("Allow", "GET, POST, DELETE");
+  res.setHeader("Allow", "GET, POST, PATCH, DELETE");
   res.status(405).end();
 }

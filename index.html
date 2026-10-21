@@ -53,6 +53,7 @@ li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
 .artist{color:var(--muted)}
 .meta{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-top:4px;flex-wrap:wrap}
 .meta a{color:inherit}
+.key{display:inline-block;margin-left:8px;padding:1px 7px;border:1.5px solid var(--ink);border-radius:999px;font-size:.8rem;font-weight:700;vertical-align:2px}
 .del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
 .chip{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#fff;font-size:.65rem;font-weight:700;margin-left:-4px;border:2px solid var(--paper)}
 .chips{display:flex;padding-left:4px}
@@ -249,6 +250,11 @@ function chip(id) {
 function songInfo(s, showVoters, t) {
   const info = document.createElement("div");
   const title = document.createElement("span"); title.className = "title"; title.textContent = s.title;
+  const head = document.createElement("div"); head.appendChild(title);
+  if (s.key) {
+    const k = document.createElement("span"); k.className = "key"; k.textContent = s.key; k.title = "Key we play it in";
+    head.appendChild(k);
+  }
   const artist = document.createElement("div"); artist.className = "artist"; artist.textContent = s.artist;
   const meta = document.createElement("div"); meta.className = "meta";
   const by = document.createElement("span");
@@ -262,12 +268,23 @@ function songInfo(s, showVoters, t) {
     const cs = document.createElement("span"); cs.className = "chips"; cs.title = "Voted up";
     t.up.slice(0, 8).forEach(u => cs.appendChild(chip(u))); meta.appendChild(cs);
   }
+  const kb = document.createElement("button"); kb.className = "del"; kb.textContent = s.key ? "change key" : "set key";
+  kb.onclick = () => setKey(s); meta.appendChild(kb);
   if (s.addedBy === voter) {
     const d = document.createElement("button"); d.className = "del"; d.textContent = "remove";
     d.onclick = () => removeSong(s); meta.appendChild(d);
   }
-  info.append(title, artist, meta);
+  info.append(head, artist, meta);
   return info;
+}
+
+async function setKey(s) {
+  const v = prompt("Key or transpose for " + s.title + " (e.g. -2, +1, Am). Leave empty to clear.", s.key || "");
+  if (v === null) return;
+  s.key = v.trim().slice(0, 12);
+  render();
+  await api("/api/songs", { method: "PATCH", body: JSON.stringify({ id: s.id, key: s.key }) });
+  load();
 }
 
 function voteButtons(s) {
