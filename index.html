@@ -54,17 +54,14 @@ li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
 .meta{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-top:4px;flex-wrap:wrap}
 .meta a{color:inherit}
 .key{display:inline-block;margin-left:8px;padding:1px 7px;border:1.5px solid var(--ink);border-radius:999px;font-size:.8rem;font-weight:700;vertical-align:2px}
+.yes{font-size:.88rem;color:var(--up);font-weight:500;margin-top:4px}
 .del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
-.chip{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#fff;font-size:.65rem;font-weight:700;margin-left:-4px;border:2px solid var(--paper)}
-.chips{display:flex;padding-left:4px}
 .vote{display:flex;flex-direction:column;align-items:center;gap:4px}
 .btns{display:flex;gap:4px}
 .btns button{width:40px;height:40px;border:2px solid var(--line);background:transparent;color:var(--muted);font-size:1rem;line-height:1;font-weight:700}
 .btns button.on.u{border-color:var(--up);background:var(--up);color:#fff}
 .btns button.on.z{border-color:var(--zero);background:var(--zero);color:var(--paper)}
 .btns button.on.d{border-color:var(--down);background:var(--down);color:#fff}
-.score{font-weight:700;font-size:1.1rem}
-.counts{font-size:.75rem;color:var(--muted)}
 .empty{color:var(--muted);text-align:center;padding:24px 0;display:block}
 dialog{border:0;border-radius:8px;padding:24px;background:var(--paper);color:var(--ink);max-width:340px;width:calc(100% - 32px)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
@@ -235,17 +232,6 @@ async function removeSong(s) {
   } catch (e) { msg(e.message === "http_403" ? "Only the person who added a song can remove it." : "Couldn't remove."); }
 }
 
-function colorFor(id) {
-  let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return `hsl(${h} 55% 45%)`;
-}
-function chip(id) {
-  const n = voters[id] || "?";
-  const c = document.createElement("span");
-  c.className = "chip"; c.style.background = colorFor(id);
-  c.textContent = n.slice(0, 1).toUpperCase(); c.title = n;
-  return c;
-}
 
 function songInfo(s, showVoters, t) {
   const info = document.createElement("div");
@@ -264,9 +250,10 @@ function songInfo(s, showVoters, t) {
     const a = document.createElement("a"); a.href = s.link; a.target = "_blank"; a.rel = "noopener"; a.textContent = "listen";
     meta.appendChild(a);
   }
+  let yes = null;
   if (showVoters && t.up.length) {
-    const cs = document.createElement("span"); cs.className = "chips"; cs.title = "Voted up";
-    t.up.slice(0, 8).forEach(u => cs.appendChild(chip(u))); meta.appendChild(cs);
+    yes = document.createElement("div"); yes.className = "yes";
+    yes.textContent = "▲ " + t.up.map(u => u === voter ? "you" : voters[u] || "someone").join(", ");
   }
   const kb = document.createElement("button"); kb.className = "del"; kb.textContent = s.key ? "change key" : "set key";
   kb.onclick = () => setKey(s); meta.appendChild(kb);
@@ -274,7 +261,9 @@ function songInfo(s, showVoters, t) {
     const d = document.createElement("button"); d.className = "del"; d.textContent = "remove";
     d.onclick = () => removeSong(s); meta.appendChild(d);
   }
-  info.append(head, artist, meta);
+  info.append(head, artist);
+  if (yes) info.appendChild(yes);
+  info.appendChild(meta);
   return info;
 }
 
@@ -347,11 +336,7 @@ function render() {
     const rank = document.createElement("div"); rank.className = "rank"; rank.textContent = i + 1;
 
     const box = document.createElement("div"); box.className = "vote";
-    const sc = document.createElement("span"); sc.className = "score";
-    sc.textContent = t.score > 0 ? "+" + t.score : t.score;
-    const counts = document.createElement("span"); counts.className = "counts";
-    counts.textContent = "▲" + t.up.length + " · 0:" + t.zero.length + " · ▼" + t.down.length;
-    box.append(sc, voteButtons(s), counts);
+    box.append(voteButtons(s));
 
     li.append(rank, songInfo(s, true, t), box);
     ol.appendChild(li);
