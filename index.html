@@ -54,7 +54,8 @@ li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
 .meta{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-top:4px;flex-wrap:wrap}
 .meta a{color:inherit}
 .key{display:inline-block;margin-left:8px;padding:1px 7px;border:1.5px solid var(--ink);border-radius:999px;font-size:.8rem;font-weight:700;vertical-align:2px}
-.yes{font-size:.88rem;color:var(--up);font-weight:500;margin-top:4px}
+.who{font-size:.88rem;font-weight:500;margin-top:4px;line-height:1.45}
+.who .up{color:var(--up)} .who .zero{color:var(--muted)} .who .down{color:var(--down)}
 .del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
 .vote{display:flex;flex-direction:column;align-items:center;gap:4px}
 .btns{display:flex;gap:4px}
@@ -250,12 +251,19 @@ function songInfo(s, showVoters, t) {
     const a = document.createElement("a"); a.href = s.link; a.target = "_blank"; a.rel = "noopener"; a.textContent = "listen";
     meta.appendChild(a);
   }
-  let yes = null;
-  if (showVoters && t.up.length) {
-    yes = document.createElement("div"); yes.className = "yes";
-    // Fixed order so the list does not shuffle when the page refreshes
-    const others = t.up.filter(u => u !== voter).map(u => voters[u] || "someone").sort((a, b) => a.localeCompare(b, "tr"));
-    yes.textContent = "▲ " + (t.up.includes(voter) ? ["you", ...others] : others).join(", ");
+  let who = null;
+  if (showVoters) {
+    // Fixed order so the names do not shuffle when the page refreshes
+    const names = ids => {
+      const others = ids.filter(u => u !== voter).map(u => voters[u] || "someone").sort((a, b) => a.localeCompare(b, "tr"));
+      return (ids.includes(voter) ? ["you", ...others] : others).join(", ");
+    };
+    who = document.createElement("div"); who.className = "who";
+    [["up", "▲", t.up], ["zero", "0", t.zero], ["down", "▼", t.down]].forEach(([cls, sign, ids]) => {
+      if (!ids.length) return;
+      const line = document.createElement("div"); line.className = cls;
+      line.textContent = sign + " " + names(ids); who.appendChild(line);
+    });
   }
   const kb = document.createElement("button"); kb.className = "del"; kb.textContent = s.key ? "change key" : "set key";
   kb.onclick = () => setKey(s); meta.appendChild(kb);
@@ -264,7 +272,7 @@ function songInfo(s, showVoters, t) {
     d.onclick = () => removeSong(s); meta.appendChild(d);
   }
   info.append(head, artist);
-  if (yes) info.appendChild(yes);
+  if (who) info.appendChild(who);
   info.appendChild(meta);
   return info;
 }
