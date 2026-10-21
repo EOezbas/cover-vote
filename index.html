@@ -253,7 +253,9 @@ function songInfo(s, showVoters, t) {
   let yes = null;
   if (showVoters && t.up.length) {
     yes = document.createElement("div"); yes.className = "yes";
-    yes.textContent = "▲ " + t.up.map(u => u === voter ? "you" : voters[u] || "someone").join(", ");
+    // Fixed order so the list does not shuffle when the page refreshes
+    const others = t.up.filter(u => u !== voter).map(u => voters[u] || "someone").sort((a, b) => a.localeCompare(b, "tr"));
+    yes.textContent = "▲ " + (t.up.includes(voter) ? ["you", ...others] : others).join(", ");
   }
   const kb = document.createElement("button"); kb.className = "del"; kb.textContent = s.key ? "change key" : "set key";
   kb.onclick = () => setKey(s); meta.appendChild(kb);
