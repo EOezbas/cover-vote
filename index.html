@@ -59,6 +59,8 @@ li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
 .keyedit{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0}
 .keyedit input{width:5.5em;min-width:0;padding:4px 6px;font-size:.9rem}
 .keyedit button{padding:4px 10px;font-size:.85rem}
+ol.rep li{grid-template-columns:minmax(0,1fr)}
+.played{font-size:.82rem;color:var(--ink);margin-top:4px}
 .voters{font-size:.88rem;font-weight:500;margin-top:4px;line-height:1.45}
 .voters .up{color:var(--up)} .voters .zero{color:var(--muted)} .voters .down{color:var(--down)}
 .del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
@@ -97,6 +99,11 @@ dialog form{grid-template-columns:1fr}
     <div class="bar"><h2 id="listTitle">The list</h2></div>
     <p class="hint" id="hint"></p>
     <ol id="list"><li class="empty">Loading…</li></ol>
+    <div id="repWrap" hidden>
+      <div class="bar"><h2>Repertoire</h2></div>
+      <p class="hint">Songs we've nailed. The bot doesn't pick these any more.</p>
+      <ol id="rep" class="rep"></ol>
+    </div>
   </div>
 </main>
 
@@ -279,6 +286,12 @@ function songInfo(s, showVoters, t) {
   info.append(head, artist);
   if (editingKey === s.id) info.appendChild(keyEditor(s));
   if (who) info.appendChild(who);
+  if ((s.played || []).length) {
+    const p = document.createElement("div"); p.className = "played";
+    const last = new Date(s.played[s.played.length - 1] + "T12:00:00");
+    p.textContent = "🎸 played " + s.played.length + "× · last " + last.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    info.appendChild(p);
+  }
   info.appendChild(meta);
   return info;
 }
@@ -329,7 +342,12 @@ function render() {
   }
 
   const ol = $("list"); ol.textContent = "";
-  const todo = songs.filter(s => myVote(s.id) === null).sort((a, b) => a.createdAt - b.createdAt);
+  const active = songs.filter(s => !s.done);
+  const done = songs.filter(s => s.done).sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+  $("repWrap").hidden = !done.length;
+  const rep = $("rep"); rep.textContent = "";
+  done.forEach(s => { const li = document.createElement("li"); li.appendChild(songInfo(s, false)); rep.appendChild(li); });
+  const todo = active.filter(s => myVote(s.id) === null).sort((a, b) => a.createdAt - b.createdAt);
 
   // Until every song has your vote, only the unvoted ones are shown, without their scores
   if (todo.length) {
@@ -347,12 +365,12 @@ function render() {
 
   ol.className = "";
   $("listTitle").textContent = "The list";
-  $("hint").textContent = songs.length ? "You can still change your votes." : "";
-  if (!songs.length) {
+  $("hint").textContent = active.length ? "You can still change your votes." : "";
+  if (!active.length) {
     const li = document.createElement("li"); li.className = "empty";
     li.textContent = "No songs yet. Paste the first link above."; ol.appendChild(li); return;
   }
-  const list = [...songs].sort((a, b) =>
+  const list = [...active].sort((a, b) =>
     (tally[b.id].score - tally[a.id].score) || (tally[b.id].up.length - tally[a.id].up.length) || a.createdAt - b.createdAt);
   const top = Math.max(...list.map(s => tally[s.id].score));
   list.forEach((s, i) => {
