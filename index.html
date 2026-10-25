@@ -44,8 +44,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--hi);outline-off
 .bar h2{font:400 1.6rem "Permanent Marker",cursive;margin:0}
 .hint{color:var(--muted);font-size:.9rem;margin:0 0 8px}
 ol{list-style:none;margin:0;padding:0}
-li{display:grid;grid-template-columns:2.2rem 1fr auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
-ol.todo li{grid-template-columns:1fr auto}
+li{display:grid;grid-template-columns:2.2rem minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid var(--line)}
+ol.todo li{grid-template-columns:minmax(0,1fr) auto}
 li:last-child{border-bottom:0}
 .rank{font:400 1.5rem "Permanent Marker",cursive;text-align:center;color:var(--muted)}
 li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
@@ -54,8 +54,13 @@ li.top .title{background:linear-gradient(transparent 55%,var(--hi) 55%)}
 .meta{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-top:4px;flex-wrap:wrap}
 .meta a{color:inherit}
 .key{display:inline-block;margin-left:8px;padding:1px 7px;border:1.5px solid var(--ink);border-radius:999px;font-size:.8rem;font-weight:700;vertical-align:2px}
-.who{font-size:.88rem;font-weight:500;margin-top:4px;line-height:1.45}
-.who .up{color:var(--up)} .who .zero{color:var(--muted)} .who .down{color:var(--down)}
+.score{font-weight:700;font-size:1.1rem}
+.counts{font-size:.75rem;color:var(--muted)}
+.keyedit{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 0}
+.keyedit input{width:5.5em;min-width:0;padding:4px 6px;font-size:.9rem}
+.keyedit button{padding:4px 10px;font-size:.85rem}
+.voters{font-size:.88rem;font-weight:500;margin-top:4px;line-height:1.45}
+.voters .up{color:var(--up)} .voters .zero{color:var(--muted)} .voters .down{color:var(--down)}
 .del{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0;font-size:.82rem}
 .vote{display:flex;flex-direction:column;align-items:center;gap:4px}
 .btns{display:flex;gap:4px}
@@ -117,7 +122,7 @@ if (!voter) { voter = crypto.randomUUID(); store.set("cv_voter", voter); }
 let name = store.get("cv_name");
 let code = store.get("cv_code");
 
-let songs = [], votes = {}, voters = {};
+let songs = [], votes = {}, voters = {}, editingKey = null;
 const msg = t => { $("msg").textContent = t; };
 
 async function api(path, opts = {}) {
@@ -170,7 +175,7 @@ async function load() {
     const d = await api("/api/songs");
     songs = d.songs; votes = d.votes; voters = d.voters;
     if ($("hello").open) renderKnown();
-    render();
+    if (!editingKey) render();
   } catch (e) { if (e.message !== "wrong_code") msg("Couldn't load the list."); }
 }
 
@@ -258,38 +263,49 @@ function songInfo(s, showVoters, t) {
       const others = ids.filter(u => u !== voter).map(u => voters[u] || "someone").sort((a, b) => a.localeCompare(b, "tr"));
       return (ids.includes(voter) ? ["you", ...others] : others).join(", ");
     };
-    who = document.createElement("div"); who.className = "who";
-    [["up", "▲", t.up], ["zero", "0", t.zero], ["down", "▼", t.down]].forEach(([cls, sign, ids]) => {
+    who = document.createElement("div"); who.className = "voters";
+    [["up", "▲", t.up], ["zero", "–", t.zero], ["down", "▼", t.down]].forEach(([cls, sign, ids]) => {
       if (!ids.length) return;
       const line = document.createElement("div"); line.className = cls;
       line.textContent = sign + " " + names(ids); who.appendChild(line);
     });
   }
   const kb = document.createElement("button"); kb.className = "del"; kb.textContent = s.key ? "change key" : "set key";
-  kb.onclick = () => setKey(s); meta.appendChild(kb);
+  kb.onclick = () => { editingKey = s.id; render(); }; meta.appendChild(kb);
   if (s.addedBy === voter) {
     const d = document.createElement("button"); d.className = "del"; d.textContent = "remove";
     d.onclick = () => removeSong(s); meta.appendChild(d);
   }
   info.append(head, artist);
+  if (editingKey === s.id) info.appendChild(keyEditor(s));
   if (who) info.appendChild(who);
   info.appendChild(meta);
   return info;
 }
 
-async function setKey(s) {
-  const v = prompt("Key or transpose for " + s.title + " (e.g. -2, +1, Am). Leave empty to clear.", s.key || "");
-  if (v === null) return;
-  s.key = v.trim().slice(0, 12);
-  render();
-  await api("/api/songs", { method: "PATCH", body: JSON.stringify({ id: s.id, key: s.key }) });
-  load();
+// Inline field: prompt() is blocked in some in-app browsers such as Telegram's
+function keyEditor(s) {
+  const box = document.createElement("form"); box.className = "keyedit";
+  const inp = document.createElement("input"); inp.value = s.key || ""; inp.maxLength = 12;
+  inp.placeholder = "-2 / Am";
+  const ok = document.createElement("button"); ok.textContent = "Save";
+  const no = document.createElement("button"); no.type = "button"; no.className = "del"; no.textContent = "cancel";
+  no.onclick = () => { editingKey = null; render(); };
+  box.onsubmit = async e => {
+    e.preventDefault();
+    s.key = inp.value.trim().slice(0, 12); editingKey = null; render();
+    await api("/api/songs", { method: "PATCH", body: JSON.stringify({ id: s.id, key: s.key }) });
+    load();
+  };
+  box.append(inp, ok, no);
+  setTimeout(() => inp.focus(), 0);
+  return box;
 }
 
 function voteButtons(s) {
   const mine = myVote(s.id);
   const btns = document.createElement("div"); btns.className = "btns";
-  [[1, "u", "▲", "Vote up"], [0, "z", "0", "Neutral"], [-1, "d", "▼", "Vote down"]].forEach(([v, cls, label, aria]) => {
+  [[1, "u", "▲", "Vote up"], [0, "z", "–", "Neutral"], [-1, "d", "▼", "Vote down"]].forEach(([v, cls, label, aria]) => {
     const b = document.createElement("button");
     b.className = cls + (mine === v ? " on" : "");
     b.textContent = label;
@@ -319,7 +335,7 @@ function render() {
   if (todo.length) {
     ol.className = "todo";
     $("listTitle").textContent = "Vote on these (" + todo.length + " left)";
-    $("hint").textContent = "▲ want to play it · 0 don't mind · ▼ rather not. The ranking opens once you've voted on every song.";
+    $("hint").textContent = "▲ want to play it · – don't mind · ▼ rather not. The ranking opens once you've voted on every song.";
     todo.forEach(s => {
       const li = document.createElement("li");
       const box = document.createElement("div"); box.className = "vote"; box.appendChild(voteButtons(s));
@@ -346,7 +362,11 @@ function render() {
     const rank = document.createElement("div"); rank.className = "rank"; rank.textContent = i + 1;
 
     const box = document.createElement("div"); box.className = "vote";
-    box.append(voteButtons(s));
+    const sc = document.createElement("span"); sc.className = "score";
+    sc.textContent = t.score > 0 ? "+" + t.score : t.score;
+    const counts = document.createElement("span"); counts.className = "counts";
+    counts.textContent = "▲" + t.up.length + " · –" + t.zero.length + " · ▼" + t.down.length;
+    box.append(sc, voteButtons(s), counts);
 
     li.append(rank, songInfo(s, true, t), box);
     ol.appendChild(li);
